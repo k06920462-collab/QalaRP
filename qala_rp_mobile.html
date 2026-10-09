@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="kk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Qala RP</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#111;color:white;font-family:system-ui,Arial;touch-action:none}canvas{width:100vw;height:100dvh;display:block}
+#top{position:fixed;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}.box{background:#101820dd;border:1px solid #ffffff44;border-radius:12px;padding:8px 10px;font-size:12px;text-shadow:0 1px 2px #000}#stats{min-width:120px}#tip{text-align:right;max-width:56%}
+#controls{position:fixed;bottom:12px;left:0;right:0;display:flex;justify-content:space-between;align-items:end;padding:0 12px;pointer-events:none}#pad{display:grid;grid-template-columns:48px 48px 48px;grid-template-rows:48px 48px;gap:5px;pointer-events:auto}button{color:#fff;background:#162434e8;border:1px solid #ffffff66;border-radius:13px;font-weight:800;touch-action:none;box-shadow:0 3px 0 #0007}#pad button{font-size:20px}#up{grid-column:2}#left{grid-column:1;grid-row:2}#down{grid-column:2;grid-row:2}#right{grid-column:3;grid-row:2}#actions{display:flex;flex-direction:column;gap:8px;pointer-events:auto}#actions button{width:72px;height:54px;font-size:11px}#toast{display:none;position:fixed;top:26%;left:50%;transform:translateX(-50%);padding:11px 15px;background:#101820ed;border:1px solid #ffffff44;border-radius:12px;font-weight:bold;text-align:center;max-width:85%}
+</style></head><body><canvas id="c"></canvas>
+<div id="top"><div id="stats" class="box"><b>🏙️ QALA RP</b><br>💵 Ақша: <span id="money">2500</span> ₸<br>👤 <span id="nick">Жаңа ойыншы</span><br>🚘 <span id="state">Жаяу</span></div><div id="tip" class="box">Камера кейіпкердің артынан жүреді!<br>Көк көлікке жақындап МІН батырмасын бас.</div></div>
+<div id="toast"></div><div id="controls"><div id="pad"><button id="up">▲</button><button id="left">◀</button><button id="down">▼</button><button id="right">▶</button></div><div id="actions"><button id="carBtn">🚗<br>МІН / ТҮС</button><button id="workBtn">💼<br>ЖҰМЫС</button><button id="shopBtn">🏪<br>ДҮКЕН</button></div></div>
+<script>
+const c=document.querySelector('#c'),g=c.getContext('2d');let W,H,D=1;function size(){D=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;c.width=W*D;c.height=H*D;g.setTransform(D,0,0,D,0,0)}addEventListener('resize',size);size();
+const world={w:2200,h:1800}, roads=[260,620,980,1340,1700], ry=[220,560,900,1240,1580];
+let p={x:260,y:300,dir:0,car:false}, vehicle={x:315,y:300,dir:0},cash=2500,job={x:980,y:560},keys={};
+const buildings=[];for(let y=0;y<world.h;y+=330)for(let x=0;x<world.w;x+=360){if(Math.random()<.13)continue;buildings.push({x:x+48,y:y+40,w:205+Math.random()*65,h:155+Math.random()*65,col:['#c8b69b','#b6c6c1','#c9a9a0','#a9b4cf','#d2c9b6'][Math.floor(Math.random()*5)]})}
+function toast(s){let t=document.querySelector('#toast');t.textContent=s;t.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>t.style.display='none',2000)}
+function bind(id,k){let b=document.getElementById(id);b.onpointerdown=e=>{e.preventDefault();keys[k]=true};for(let ev of ['pointerup','pointercancel','pointerleave'])b.addEventListener(ev,e=>{e.preventDefault();keys[k]=false})}bind('up','u');bind('down','d');bind('left','l');bind('right','r');
+function enter(){if(!p.car&&Math.hypot(p.x-vehicle.x,p.y-vehicle.y)<90){p.car=true;toast('Көлікке отырдың!')}else if(p.car){p.car=false;p.x=vehicle.x+35;p.y=vehicle.y+10;toast('Көліктен түстің')}else toast('Көк көлікке жақында!');document.querySelector('#state').textContent=p.car?'Көлік':'Жаяу'}
+document.querySelector('#carBtn').onpointerdown=e=>{e.preventDefault();enter()};
+document.querySelector('#workBtn').onpointerdown=e=>{e.preventDefault();let x=p.car?vehicle.x:p.x,y=p.car?vehicle.y:p.y;if(Math.hypot(x-job.x,y-job.y)<115){cash+=750;document.querySelector('#money').textContent=cash;job={x:roads[Math.floor(Math.random()*roads.length)],y:ry[Math.floor(Math.random()*ry.length)]};toast('Жұмыс бітті! +750 ₸')}else toast('Картадағы жасыл $ белгісіне бар!')};
+document.querySelector('#shopBtn').onpointerdown=e=>{e.preventDefault();let x=p.car?vehicle.x:p.x,y=p.car?vehicle.y:p.y;if(Math.hypot(x-1450,y-ry[2])<140){if(cash>=500){cash-=500;document.querySelector('#money').textContent=cash;toast('Дүкеннен зат алдың! -500 ₸')}else toast('Ақша жетпейді!')}else toast('Дүкен — картадағы 🏪 белгісінің жанында!')};
+addEventListener('keydown',e=>{let m={ArrowUp:'u',w:'u',ArrowDown:'d',s:'d',ArrowLeft:'l',a:'l',ArrowRight:'r',d:'r'};if(m[e.key])keys[m[e.key]]=true;if(e.key===' ')enter()});addEventListener('keyup',e=>{let m={ArrowUp:'u',w:'u',ArrowDown:'d',s:'d',ArrowLeft:'l',a:'l',ArrowRight:'r',d:'r'};if(m[e.key])keys[m[e.key]]=false});
+function person(x,y){g.fillStyle='#1a2630';g.beginPath();g.arc(x,y-10,7,0,7);g.fill();g.fillStyle='#efc49c';g.beginPath();g.arc(x,y-15,5,0,7);g.fill();g.fillStyle='#e4b735';g.fillRect(x-6,y-9,12,14);g.fillStyle='#253b57';g.fillRect(x-5,y+5,4,8);g.fillRect(x+1,y+5,4,8)}
+function car(x,y,a,col){g.save();g.translate(x,y);g.rotate(a);g.fillStyle='#111';g.fillRect(-23,-13,46,26);g.fillStyle=col;g.fillRect(-21,-11,42,22);g.fillStyle='#bde8ff';g.fillRect(-8,-9,17,18);g.fillStyle='#ffe9a3';g.fillRect(17,-8,4,5);g.fillRect(17,3,4,5);g.restore()}
+function frame(){let x=p.car?vehicle.x:p.x,y=p.car?vehicle.y:p.y,sp=p.car?4:2.3;if(keys.l){x-=sp;p.dir=Math.PI}if(keys.r){x+=sp;p.dir=0}if(keys.u){y-=sp;p.dir=-Math.PI/2}if(keys.d){y+=sp;p.dir=Math.PI/2}x=Math.max(15,Math.min(world.w-15,x));y=Math.max(15,Math.min(world.h-15,y));if(p.car){vehicle.x=x;vehicle.y=y;vehicle.dir=p.dir}else{p.x=x;p.y=y}
+ let px=p.car?vehicle.x:p.x,py=p.car?vehicle.y:p.y;
+ // Follow camera: keep the player near the bottom and turn the world so the view looks in the direction of travel.
+ g.clearRect(0,0,W,H);g.save();g.translate(W/2,H*0.68);g.rotate(-Math.PI/2-p.dir);g.translate(-px,-py);g.fillStyle='#78a968';g.fillRect(0,0,world.w,world.h);
+ g.fillStyle='#4c535c';for(let a of roads)g.fillRect(a-57,0,114,world.h);for(let a of ry)g.fillRect(0,a-53,world.w,106);
+ g.strokeStyle='#e7dca2';g.lineWidth=3;g.setLineDash([20,20]);for(let a of roads){g.beginPath();g.moveTo(a,0);g.lineTo(a,world.h);g.stroke()}for(let a of ry){g.beginPath();g.moveTo(0,a);g.lineTo(world.w,a);g.stroke()}g.setLineDash([]);
+ for(let b of buildings){g.fillStyle='#0003';g.fillRect(b.x+7,b.y+8,b.w,b.h);g.fillStyle='#ded8cb';g.fillRect(b.x-6,b.y-6,b.w+12,b.h+12);g.fillStyle=b.col;g.fillRect(b.x,b.y,b.w,b.h);g.fillStyle='#f5edcf';for(let xx=b.x+15;xx<b.x+b.w-12;xx+=36)for(let yy=b.y+14;yy<b.y+b.h-12;yy+=34)g.fillRect(xx,yy,15,12)}
+ for(let i=0;i<28;i++){let tx=(i*149+75)%world.w,ty=(i*211+80)%world.h;g.fillStyle='#73543b';g.fillRect(tx-3,ty,6,14);g.fillStyle='#2d7542';g.beginPath();g.arc(tx,ty,14,0,7);g.fill()}
+ // shop marker
+ g.fillStyle='#e5b83f';g.fillRect(1415,ry[2]-38,70,65);g.fillStyle='#49351b';g.font='bold 24px system-ui';g.textAlign='center';g.fillText('🏪',1450,ry[2]+5);
+ g.fillStyle='#35f08a';g.beginPath();g.arc(job.x,job.y,24+Math.sin(Date.now()/180)*4,0,7);g.fill();g.fillStyle='#063a21';g.font='bold 24px system-ui';g.fillText('$',job.x,job.y+8);
+ car(vehicle.x,vehicle.y,vehicle.dir,'#248be2');if(!p.car)person(p.x,p.y);
+ g.restore();
+ // mini map
+ let mw=94,mh=74,mx=W-mw-10,my=H/2-37;g.fillStyle='#101820dc';g.fillRect(mx,my,mw,mh);g.fillStyle='#59616a';for(let a of roads)g.fillRect(mx+a/world.w*mw-2,my,4,mh);for(let a of ry)g.fillRect(mx,my+a/world.h*mh-2,mw,4);g.fillStyle='#36f08b';g.beginPath();g.arc(mx+job.x/world.w*mw,my+job.y/world.h*mh,3,0,7);g.fill();g.fillStyle='#ff5a5a';g.beginPath();g.arc(mx+px/world.w*mw,my+py/world.h*mh,3,0,7);g.fill();g.strokeStyle='#ffffff77';g.strokeRect(mx,my,mw,mh);
+ requestAnimationFrame(frame)}toast('Qala RP-ға қош келдің!');frame();
+</script></body></html>

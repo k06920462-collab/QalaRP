@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Қала Life — 2D</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}
+canvas{display:block;width:100vw;height:100dvh;background:#6c9b5a}
+#hud{position:fixed;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;text-shadow:0 2px 3px #000}
+.panel{background:#101923d9;border:1px solid #ffffff35;border-radius:12px;padding:8px 11px;font-size:13px;line-height:1.35}
+#help{max-width:54%;text-align:right}
+#controls{position:fixed;left:0;right:0;bottom:15px;display:flex;justify-content:space-between;align-items:end;padding:0 16px;pointer-events:none}
+#pad{display:grid;grid-template-columns:48px 48px 48px;grid-template-rows:48px 48px 48px;gap:4px;pointer-events:auto}
+.ctrl{border:1px solid #ffffff55;border-radius:13px;background:#18212edb;color:white;font-size:20px;font-weight:800;touch-action:none;box-shadow:0 3px 0 #0006}
+#up{grid-column:2}#left{grid-column:1;grid-row:2}#down{grid-column:2;grid-row:2}#right{grid-column:3;grid-row:2}
+#actions{display:flex;flex-direction:column;gap:10px;pointer-events:auto;align-items:center}
+#actions button{width:76px;height:58px;font-size:12px}
+#message{position:fixed;left:50%;top:25%;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:#101923e8;border:1px solid #ffffff35;font-weight:700;display:none;text-align:center;max-width:85%}
+@media(min-width:700px){#controls{padding:0 28px}#pad{transform:scale(1.12);transform-origin:bottom left}#actions button{width:90px;height:64px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+ <div class="panel"><b>🏙️ ҚАЛА LIFE</b><br>💵 Ақша: <span id="cash">0</span> ₸<br>🚶 Режим: <span id="mode">Жаяу</span></div>
+ <div id="help" class="panel">Жасыл белгіге бар — тапсырма ал!<br>Көк көлікке жақындап «МІН» бас.</div>
+</div>
+<div id="message"></div>
+<div id="controls">
+ <div id="pad">
+  <button class="ctrl" id="up">▲</button><button class="ctrl" id="left">◀</button><button class="ctrl" id="down">▼</button><button class="ctrl" id="right">▶</button>
+ </div>
+ <div id="actions"><button class="ctrl" id="act">🚗<br>МІН</button><button class="ctrl" id="job">💵<br>ТАПСЫРМА</button></div>
+</div>
+<script>
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W=0,H=0,dpr=1;
+function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+const world={w:1800,h:1400}, roads=[280,620,960,1300], roadsY=[240,560,880,1200];
+const buildings=[];
+for(let y=0;y<world.h;y+=320)for(let x=0;x<world.w;x+=340){
+ if(Math.random()<.14)continue;
+ buildings.push({x:x+48,y:y+42,w:180+Math.random()*65,h:145+Math.random()*65,c:['#b9a58a','#c7c8c2','#d6b5a0','#8eaaa2','#c2b8d8'][Math.floor(Math.random()*5)]});
+}
+let player={x:280,y:300,angle:0,inCar:false},car={x:330,y:300,angle:0},cash=0,mission={x:960,y:560,active:true},keys={},toastTimer=0;
+const cashEl=document.getElementById('cash'),modeEl=document.getElementById('mode'),msg=document.getElementById('message');
+function toast(t){msg.textContent=t;msg.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>msg.style.display='none',2100)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function bind(id,k){const el=document.getElementById(id);const on=e=>{e.preventDefault();keys[k]=true};const off=e=>{e.preventDefault();keys[k]=false};el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);el.addEventListener('pointerleave',off)}
+bind('up','up');bind('down','down');bind('left','left');bind('right','right');
+addEventListener('keydown',e=>{let k={ArrowUp:'up',w:'up',ArrowDown:'down',s:'down',ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right'}[e.key];if(k)keys[k]=true;if(e.key===' '){e.preventDefault();toggleCar()}if(e.key.toLowerCase()==='e')doJob()});
+addEventListener('keyup',e=>{let k={ArrowUp:'up',w:'up',ArrowDown:'down',s:'down',ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right'}[e.key];if(k)keys[k]=false});
+function toggleCar(){let p=player;if(!p.inCar){if(Math.hypot(p.x-car.x,p.y-car.y)<85){p.inCar=true;toast('Көлікке отырдың! 🚗')}else toast('Көк көлікке жақында!')}else{p.inCar=false;p.x=clamp(car.x+35,20,world.w-20);p.y=car.y+15;toast('Көліктен түстің. 🚶')}modeEl.textContent=p.inCar?'Көлік':'Жаяу'}
+function doJob(){let p=player, x=p.inCar?car.x:p.x,y=p.inCar?car.y:p.y;if(Math.hypot(x-mission.x,y-mission.y)<100){cash+=500;cashEl.textContent=cash;mission={x: [280,620,960,1300,1560][Math.floor(Math.random()*5)],y:[240,560,880,1200][Math.floor(Math.random()*4)],active:true};toast('Тапсырма орындалды! +500 ₸ 💰')}else toast('Жасыл белгіге жақындап, тапсырма батырмасын бас!')}
+function drawPerson(x,y){ctx.fillStyle='#222';ctx.beginPath();ctx.arc(x,y-8,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f0c49a';ctx.beginPath();ctx.arc(x,y-13,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ed4d52';ctx.fillRect(x-5,y-8,10,13);ctx.fillStyle='#27364a';ctx.fillRect(x-5,y+5,4,8);ctx.fillRect(x+1,y+5,4,8)}
+function drawCar(x,y,a,color){ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle='#10151c';ctx.fillRect(-21,-12,42,24);ctx.fillStyle=color;ctx.fillRect(-19,-10,38,20);ctx.fillStyle='#bce6f6';ctx.fillRect(-8,-8,14,16);ctx.fillStyle='#fff1b3';ctx.fillRect(15,-7,4,5);ctx.fillRect(15,2,4,5);ctx.restore()}
+function update(){let speed=player.inCar?3.8:2.2, x=player.inCar?car.x:player.x,y=player.inCar?car.y:player.y;
+ if(keys.left){x-=speed;player.angle=Math.PI}if(keys.right){x+=speed;player.angle=0}if(keys.up){y-=speed;player.angle=-Math.PI/2}if(keys.down){y+=speed;player.angle=Math.PI/2}
+ x=clamp(x,15,world.w-15);y=clamp(y,15,world.h-15);
+ if(player.inCar){car.x=x;car.y=y;car.angle=player.angle}else{player.x=x;player.y=y}
+}
+function render(){update();ctx.clearRect(0,0,W,H);let cx=player.inCar?car.x:player.x,cy=player.inCar?car.y:player.y,camX=clamp(cx-W/2,0,world.w-W),camY=clamp(cy-H/2,0,world.h-H);
+ ctx.save();ctx.translate(-camX,-camY);
+ ctx.fillStyle='#7caa69';ctx.fillRect(0,0,world.w,world.h);
+ // parks
+ ctx.fillStyle='#63985a';ctx.fillRect(100,650,145,190);ctx.fillRect(1440,260,220,170);
+ // roads
+ ctx.fillStyle='#4a5159';for(let x of roads)ctx.fillRect(x-62,0,124,world.h);for(let y of roadsY)ctx.fillRect(0,y-58,world.w,116);
+ ctx.strokeStyle='#d9d4a0';ctx.lineWidth=3;ctx.setLineDash([20,18]);for(let x of roads){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,world.h);ctx.stroke()}for(let y of roadsY){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(world.w,y);ctx.stroke()}ctx.setLineDash([]);
+ // sidewalks and buildings
+ for(const b of buildings){ctx.fillStyle='#0002';ctx.fillRect(b.x+7,b.y+8,b.w,b.h);ctx.fillStyle='#d9d5c9';ctx.fillRect(b.x-7,b.y-7,b.w+14,b.h+14);ctx.fillStyle=b.c;ctx.fillRect(b.x,b.y,b.w,b.h);ctx.fillStyle='#ffffff55';for(let wx=b.x+15;wx<b.x+b.w-10;wx+=35)for(let wy=b.y+15;wy<b.y+b.h-10;wy+=32)ctx.fillRect(wx,wy,14,12);ctx.fillStyle='#5b5145';ctx.fillRect(b.x+b.w/2-9,b.y+b.h-24,18,24)}
+ for(let i=0;i<18;i++){let tx=(i*137+90)%world.w,ty=(i*223+110)%world.h;ctx.fillStyle='#73533c';ctx.fillRect(tx-3,ty,6,15);ctx.fillStyle='#286b3c';ctx.beginPath();ctx.arc(tx,ty,14,0,7);ctx.fill()}
+ // mission
+ ctx.fillStyle='#30ed83';ctx.beginPath();ctx.arc(mission.x,mission.y,23+Math.sin(Date.now()/180)*4,0,7);ctx.fill();ctx.fillStyle='#073d22';ctx.font='bold 22px system-ui';ctx.textAlign='center';ctx.fillText('$',mission.x,mission.y+8);
+ drawCar(car.x,car.y,car.angle,'#268de0');if(!player.inCar)drawPerson(player.x,player.y);
+ ctx.restore();
+ // minimap
+ const mw=100,mh=78,mx=W-mw-12,my=H/2-40;ctx.fillStyle='#101923d9';ctx.fillRect(mx,my,mw,mh);ctx.fillStyle='#515963';for(let x of roads)ctx.fillRect(mx+x/world.w*mw-3,my,6,mh);for(let y of roadsY)ctx.fillRect(mx,my+y/world.h*mh-3,mw,6);ctx.fillStyle='#30ed83';ctx.beginPath();ctx.arc(mx+mission.x/world.w*mw,my+mission.y/world.h*mh,3,0,7);ctx.fill();ctx.fillStyle='#ff5252';ctx.beginPath();ctx.arc(mx+cx/world.w*mw,my+cy/world.h*mh,3,0,7);ctx.fill();ctx.strokeStyle='#ffffff77';ctx.strokeRect(mx,my,mw,mh);
+ requestAnimationFrame(render)}
+document.getElementById('act').addEventListener('pointerdown',e=>{e.preventDefault();toggleCar()});
+document.getElementById('job').addEventListener('pointerdown',e=>{e.preventDefault();doJob()});
+toast('Қалаға қош келдің! Жүріп көр 🚶');render();
+</script>
+</body></html>
